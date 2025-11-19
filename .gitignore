@@ -1,0 +1,14 @@
+# Ignore large data folders
+daily_nc_files/
+filled_all_days/
+
+# Ignore large model checkpoints
+checkpoints/
+*.pth
+
+# Ignore Python cache files
+__pycache__/
+*.pyc
+
+# Ignore large NetCDF files in the root
+*.nc
