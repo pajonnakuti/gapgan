@@ -1,0 +1,14 @@
+dash
+dash-bootstrap-components
+plotly
+geopandas
+pandas
+numpy
+xarray
+rioxarray
+rasterio
+netCDF4
+matplotlib
+shapely
+diskcache
+tensorflow  # or tensorflow-gpu depending on your requirement
