@@ -112,17 +112,17 @@ def get_sector_data_paths(sector_id):
     return hist_path, max(ckpt_files, key=os.path.getmtime).replace('.index', '')
 
 def run_inference_core(tif_bytes, filename, sector_id, timesteps):
-    # --- 1. VALIDATION LOGIC ---
+    # 1. Validate Inputs
     try:
         timesteps = int(timesteps)
     except:
-        raise ValueError("Timesteps must be a valid number.")
+        raise ValueError("Timesteps must be a number.")
     
     if timesteps < 1000 or timesteps > 16000:
         raise ValueError("Historical passes must be between 1000 and 16000.")
 
     hist_path, ckpt_path = get_sector_data_paths(sector_id)
-    if not hist_path: raise ValueError("Model files not found for this sector. Please check 'model_data' folder.")
+    if not hist_path: raise ValueError("Model files not found for this sector.")
     
     try:
         base = filename
@@ -131,7 +131,7 @@ def run_inference_core(tif_bytes, filename, sector_id, timesteps):
     except:
         ts = pd.Timestamp.now()
 
-    # --- 2. Load & Check Data Availability ---
+    # 2. Load & Check Data Availability
     arc = xr.open_dataset(hist_path).rename({'lat': 'y', 'lon': 'x'})
     arc = arc.rio.set_spatial_dims(x_dim="x", y_dim="y").rio.write_crs("EPSG:4326")
     grid_tmpl = arc[VAR_NAME].isel(time=0, drop=True)
@@ -139,23 +139,30 @@ def run_inference_core(tif_bytes, filename, sector_id, timesteps):
     # Filter data BEFORE the new timestamp
     data_pre = arc[VAR_NAME].sel(time=slice(None, ts - pd.Timedelta(seconds=1)))
     
-    # Check exact number of available steps
+    # Check available data
     available_steps = data_pre.sizes['time']
     if available_steps < timesteps:
-        raise ValueError(f"Insufficient historical data in latest.nc. You requested {timesteps} passes, but only {available_steps} are available before the uploaded date.")
+        raise ValueError(f"Insufficient historical data. Requested {timesteps}, but only {available_steps} exist before {ts}.")
 
     # Slice
     hist_slice = data_pre.isel(time=slice(-int(timesteps), None))
     
-    # --- 3. Process New TIF ---
-    new_rio = rioxarray.open_rasterio(io.BytesIO(tif_bytes), masked=True).squeeze()
-    new_rio = new_rio.rio.set_crs("EPSG:4326")
+    # 3. Process New TIF
+    try:
+        new_rio = rioxarray.open_rasterio(io.BytesIO(tif_bytes), masked=True).squeeze()
+        new_rio = new_rio.rio.set_crs("EPSG:4326")
+    except Exception:
+        raise ValueError("Failed to read file. Ensure it is a valid, uncorrupted GeoTIFF.")
     
     bounds = SECTOR_BOUNDARIES[str(sector_id)]["bounds"]
     miny, minx = bounds[0]
     maxy, maxx = bounds[1]
-    cropped = new_rio.rio.clip_box(minx=minx, miny=miny, maxx=maxx, maxy=maxy, crs="EPSG:4326")
-    resampled = cropped.rio.reproject_match(grid_tmpl, resampling=Resampling.bilinear)
+    
+    try:
+        cropped = new_rio.rio.clip_box(minx=minx, miny=miny, maxx=maxx, maxy=maxy, crs="EPSG:4326")
+        resampled = cropped.rio.reproject_match(grid_tmpl, resampling=Resampling.bilinear)
+    except Exception:
+        raise ValueError("Failed to crop/resample. Does the TIF cover the selected sector?")
     
     new_np = resampled.values.astype('float32')
     new_np[new_np == MISSING_VALUE] = np.nan
@@ -175,7 +182,7 @@ def run_inference_core(tif_bytes, filename, sector_id, timesteps):
     ds_in[VAR_NAME].encoding['_FillValue'] = -9999.0
     ds_in.to_netcdf(temp_in)
     
-    # --- 4. Run DINCAE ---
+    # 4. Run DINCAE
     lon, lat, time, data, missing, mask = DINCAE.load_gridded_nc(temp_in, VAR_NAME)
     inf_gen, nvar, inf_len, mean_d = DINCAE.data_generator(lon, lat, time, data, missing, train=False, ntime_win=3)
     
@@ -194,7 +201,7 @@ def run_inference_core(tif_bytes, filename, sector_id, timesteps):
     rec_slice = rec_slice.assign_coords(orig_da.coords)
     hybrid = xr.where(orig_da.isnull(), rec_slice, orig_da)
     
-    # --- 5. Plotting (Smoothed) ---
+    # 5. Plotting
     orig_2d = orig_da.squeeze()
     hybrid_2d = hybrid.squeeze()
     
@@ -343,7 +350,6 @@ app.layout = html.Div([
                         html.Div(id='upload-status', className="mb-3 text-muted small"),
                         
                         html.Label("Historical Timesteps (Passes)", className="fw-bold mt-2"),
-                        # Manual Input + Dropdown List
                         dbc.Input(
                             id='timesteps-input', 
                             type='number', 
@@ -371,7 +377,7 @@ app.layout = html.Div([
                 dbc.Card([
                     dbc.CardHeader("Results & Download", className="bg-light fw-bold"),
                     dbc.CardBody([
-                        # --- Error Alert Box ---
+                        # --- ALERT BOX FOR ERRORS ---
                         dbc.Alert(id="error-alert", is_open=False, color="danger", dismissable=True),
                         
                         html.Div(id='result-container', style={'display': 'none'}, children=[
@@ -437,30 +443,35 @@ def toggle_button(contents, sector_id, filename):
 )
 def run_process(n, contents, filename, sector_id, timesteps):
     if not contents: raise PreventUpdate
+    
+    # --- CHECK 1: FILE EXTENSION ---
+    if not filename.lower().endswith(('.tif', '.tiff')):
+        return (
+            {'display': 'none'}, {'display': 'block'}, 
+            "", "", "", "", "", 
+            f"Error: Invalid file type '{filename}'. Please upload a .TIF file.", True
+        )
+
     content_type, content_string = contents.split(',')
     decoded = base64.b64decode(content_string)
     
     try:
-        # Run Core Logic
         img_combined, dl_path, date_str = run_inference_core(decoded, filename, sector_id, timesteps)
         
-        # Success: Return Results, Hide Error
         return (
             {'display': 'block'}, {'display': 'none'}, 
             f"data:image/png;base64,{img_combined}", 
             dl_path, f"Sector {sector_id}: {SECTOR_BOUNDARIES[str(sector_id)]['name']}",
             f"Date: {date_str}", "",
-            "", False
+            "", False 
         )
     except ValueError as ve:
-        # Validation Error: Show Alert
         return (
             {'display': 'none'}, {'display': 'block'}, 
             "", "", "", "", "",
             str(ve), True 
         )
     except Exception as e:
-        # General Error: Show Alert
         print(f"Process Error: {e}")
         return (
             {'display': 'none'}, {'display': 'block'}, 
