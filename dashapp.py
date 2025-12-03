@@ -118,7 +118,7 @@ def run_inference_core(tif_bytes, filename, sector_id, timesteps):
     except:
         raise ValueError("Timesteps must be a number.")
     
-    if timesteps < 1000 or timesteps > 16000:
+    if timesteps < 300 or timesteps > 16000:
         raise ValueError("Historical passes must be between 1000 and 16000.")
 
     hist_path, ckpt_path = get_sector_data_paths(sector_id)
@@ -354,7 +354,7 @@ app.layout = html.Div([
                             id='timesteps-input', 
                             type='number', 
                             value=3000, 
-                            min=1000, 
+                            min=300, 
                             max=16000, 
                             step=1, 
                             list='timesteps-list'
@@ -363,7 +363,7 @@ app.layout = html.Div([
                             id='timesteps-list',
                             children=[html.Option(value=str(i)) for i in range(1000, 16001, 1000)]
                         ),
-                        dbc.FormText("Select a preset or type a specific value (1000-16000)"),
+                        dbc.FormText("Select a preset or type a specific value (300-16000)"),
                         
                         html.Hr(),
                         dbc.Button("▶ Run Reconstruction", id='run-btn', color="primary", className="w-100", size="lg", disabled=True),
