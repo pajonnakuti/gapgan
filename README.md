@@ -55,24 +55,108 @@ The generator learns realistic spatial patterns while the discriminator enforces
 
 Model performance is validated using PSNR, SSIM, and RMSE against reference datasets.
 
-Applications
+# 📊 GapGAN Model Outputs – Arabian Sea (64x64)
 
-High-resolution ocean surface analysis
+**Region:** Arabian Sea  
+**Resolution:** 64 × 64  
+**Training:** 300 Epochs  
+**Models Compared:** Bicubic Interpolation, SRCNN, SRGAN  
 
-Climate and monsoon studies
+---
 
-Potential Fishing Zone (PFZ) support
+# 🌊 1️⃣ Year 2004 – Arabian Sea
 
-Environmental monitoring and forecasting
+<img width="503" height="336" alt="Screenshot 2026-02-17 212535" src="https://github.com/user-attachments/assets/fcc8e7cd-9780-43a6-be79-f9b8cb657112" />
 
-Research in remote sensing and oceanography
 
-Citation
+### 📈 SRGAN Performance
+- PSNR: 32.15
+- SSIM: 0.929
+
+---
+
+# 🌊 2️⃣ Year 2009 – Arabian Sea
+
+<img width="473" height="357" alt="Screenshot 2026-02-17 212547" src="https://github.com/user-attachments/assets/d5fa3fcd-b38e-459b-bec7-9784d9814e16" />
+
+
+
+### 📈 SRGAN Performance
+- PSNR: 34.12
+- SSIM: 0.952
+
+---
+
+# 🌊 3️⃣ Year 2016 – Arabian Sea
+
+<img width="477" height="369" alt="Screenshot 2026-02-17 212602" src="https://github.com/user-attachments/assets/057287b8-0833-49d6-8163-176d514ede0b" />
+
+### 📈 SRGAN Performance
+- PSNR: 32.38
+- SSIM: 0.932
+
+---
+
+# 🌊 4️⃣ Year 2017 – Arabian Sea
+
+<img width="465" height="339" alt="Screenshot 2026-02-17 212617" src="https://github.com/user-attachments/assets/16609a5a-24e5-40a1-a06e-858b12fdffa6" />
+
+
+
+### 📈 SRGAN Performance
+- PSNR: 31.05
+- SSIM: 0.931
+
+---
+
+# 🌊 5️⃣ Year 2018 – Arabian Sea
+
+<img width="459" height="322" alt="Screenshot 2026-02-17 212626" src="https://github.com/user-attachments/assets/f9b96be8-be0f-464c-be27-9e32166b0eba" />
+
+
+
+### 📈 SRGAN Performance
+- PSNR: 31.41
+- SSIM: 0.931
+
+---
+
+# 🔬 Comparative Analysis
+
+Across multiple years of Arabian Sea scatterometer data:
+
+- SRGAN consistently outperforms Bicubic interpolation.
+- Structural similarity (SSIM) remains above 0.92 across all years.
+- PSNR values demonstrate stable high-quality reconstruction.
+- Spatial continuity and oceanic structure patterns are preserved.
+- The model generalizes effectively across temporal variations.
+
+---
+
+# 🚀 Conclusion
+
+The GapGAN (SRGAN-based) model demonstrates strong robustness and consistency in reconstructing missing satellite
+
+
+
+# 🚀 Applications
+
+- High-resolution ocean surface analysis
+
+- Climate and monsoon studies
+
+- Potential Fishing Zone (PFZ) support
+
+- Environmental monitoring and forecasting
+
+- Research in remote sensing and oceanography
+
+# Citation
 
 If you use this work in your research, please cite:
 
 Kandula Sohan et al., SRGAN-Based Gap Filling of Wind Scatterometry and Super-Resolution Enhancement of Satellite SST for High-Resolution Ocean Analysis, INCOIS Internship Project, 2025.
 
-License
+# License
 
 MIT License
